@@ -1,0 +1,1554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PJM LMP Analytics | Professional Energy Trading Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --warning-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --dark-gradient: linear-gradient(135deg, #232526 0%, #414345 100%);
+            
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --dark-glass: rgba(0, 0, 0, 0.1);
+            
+            --text-primary: #2d3748;
+            --text-secondary: #4a5568;
+            --text-muted: #718096;
+            --surface: #ffffff;
+            --surface-elevated: #f7fafc;
+            
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 1px 3px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1), 0 10px 10px rgba(0, 0, 0, 0.04);
+            
+            --border-radius: 16px;
+            --border-radius-lg: 24px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--primary-gradient);
+            min-height: 100vh;
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        /* Animated Background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.1;
+        }
+
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            animation: float 20s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        /* Header */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            padding: 0;
+        }
+
+        .header-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 24px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 24px;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo {
+            width: 48px;
+            height: 48px;
+            background: var(--primary-gradient);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: 800;
+            box-shadow: var(--shadow-md);
+        }
+
+        .header-text h1 {
+            font-size: 28px;
+            font-weight: 800;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 4px;
+        }
+
+        .header-text p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            border-radius: 12px;
+            color: #059669;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .update-btn {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: var(--transition);
+            box-shadow: var(--shadow-md);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .update-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .update-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .update-btn.updating {
+            background: var(--warning-gradient);
+        }
+
+        .update-btn.success {
+            background: var(--success-gradient);
+        }
+
+        .update-btn.error {
+            background: var(--secondary-gradient);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 32px;
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--primary-gradient);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            color: white;
+        }
+
+        .loading-spinner {
+            width: 80px;
+            height: 80px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 24px;
+        }
+
+        .loading-text {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .loading-subtext {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Glass Cards */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--border-radius-lg);
+            padding: 32px;
+            margin-bottom: 32px;
+            box-shadow: var(--shadow-xl);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--primary-gradient);
+        }
+
+        .glass-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 32px 64px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .card-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--primary-gradient);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+        }
+
+        /* Statistics Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: var(--surface);
+            border-radius: var(--border-radius);
+            padding: 24px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid #e2e8f0;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--primary-gradient);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 20px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-change {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 6px;
+            display: inline-block;
+        }
+
+        .stat-change.positive {
+            background: rgba(34, 197, 94, 0.1);
+            color: #059669;
+        }
+
+        .stat-change.negative {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+        }
+
+        /* Zone Selection */
+        .zone-controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            padding: 10px 20px;
+            border: 2px solid var(--glass-border);
+            background: rgba(255, 255, 255, 0.8);
+            color: var(--text-primary);
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+            font-size: 14px;
+        }
+
+        .control-btn:hover, .control-btn.active {
+            background: var(--primary-gradient);
+            color: white;
+            border-color: transparent;
+            transform: translateY(-1px);
+        }
+
+        .zone-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+        }
+
+        .zone-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: var(--surface);
+            border-radius: var(--border-radius);
+            border: 2px solid #e2e8f0;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .zone-item:hover {
+            border-color: #667eea;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .zone-item.selected {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .zone-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .zone-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 6px;
+            border: 2px solid white;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .zone-label {
+            flex: 1;
+            font-weight: 600;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        /* Chart Section */
+        .chart-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+            background: var(--surface-elevated);
+            padding: 8px;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .chart-tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .chart-tab.active {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 500px;
+            background: var(--surface);
+            border-radius: var(--border-radius);
+            padding: 24px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid #e2e8f0;
+        }
+
+        /* Table */
+        .table-container {
+            background: var(--surface);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            border: 1px solid #e2e8f0;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 16px 20px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: var(--surface-elevated);
+            color: var(--text-primary);
+            font-weight: 700;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tr:hover {
+            background: rgba(102, 126, 234, 0.02);
+        }
+
+        .price-cell {
+            font-weight: 700;
+            font-family: 'Inter', monospace;
+        }
+
+        .change-positive {
+            color: #059669;
+            font-weight: 700;
+        }
+
+        .change-negative {
+            color: #dc2626;
+            font-weight: 700;
+        }
+
+        /* Error Message */
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+            padding: 16px 20px;
+            border-radius: var(--border-radius);
+            margin: 20px 0;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .container {
+                padding: 24px;
+            }
+            
+            .glass-card {
+                padding: 24px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                text-align: center;
+                padding: 20px;
+            }
+            
+            .container {
+                padding: 16px;
+            }
+            
+            .glass-card {
+                padding: 20px;
+                margin-bottom: 20px;
+            }
+            
+            .zone-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-container {
+                height: 400px;
+                padding: 16px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 16px;
+            }
+            
+            .chart-tabs {
+                flex-direction: column;
+            }
+        }
+
+        /* Animations */
+        .fade-in {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .slide-up {
+            animation: slideUp 0.8s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+    
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading PJM LMP Analytics</div>
+        <div class="loading-subtext">Fetching real-time energy market data...</div>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo-section">
+                <div class="logo">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="header-text">
+                    <h1>PJM LMP Analytics</h1>
+                    <p>Professional Energy Trading Dashboard</p>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <div class="status-indicator">
+                    <div class="status-dot"></div>
+                    <span>Live Data</span>
+                </div>
+                
+                <button class="update-btn" onclick="updateData()" id="updateBtn">
+                    <i class="fas fa-sync-alt"></i>
+                    <span>Update Data</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+        <div id="mainContent" style="display: none;">
+            
+            <!-- Statistics Overview -->
+            <section class="glass-card fade-in">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <div class="card-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        Market Overview
+                    </h2>
+                </div>
+                <div class="stats-grid" id="statsGrid">
+                    <!-- Statistics will be populated here -->
+                </div>
+            </section>
+
+            <!-- Zone Selection -->
+            <section class="glass-card slide-up">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <div class="card-icon">
+                            <i class="fas fa-map-marked-alt"></i>
+                        </div>
+                        Zone Selection
+                    </h2>
+                </div>
+                
+                <div class="zone-controls">
+                    <button class="control-btn" onclick="selectAllZones()">
+                        <i class="fas fa-check-double"></i> Select All
+                    </button>
+                    <button class="control-btn" onclick="deselectAllZones()">
+                        <i class="fas fa-times"></i> Clear All
+                    </button>
+                    <button class="control-btn" onclick="selectTopZones()">
+                        <i class="fas fa-star"></i> Top 5 Zones
+                    </button>
+                </div>
+                
+                <div class="zone-grid" id="zoneSelection">
+                    <!-- Zone checkboxes will be populated here -->
+                </div>
+            </section>
+
+            <!-- Chart Analytics -->
+            <section class="glass-card slide-up">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <div class="card-icon">
+                            <i class="fas fa-analytics"></i>
+                        </div>
+                        Price Analytics
+                    </h2>
+                </div>
+                
+                <div class="chart-tabs">
+                    <button class="chart-tab active" onclick="switchChart('rolling')">
+                        <i class="fas fa-chart-area"></i> Rolling Averages
+                    </button>
+                    <button class="chart-tab" onclick="switchChart('monthly')">
+                        <i class="fas fa-chart-line"></i> Monthly Trends
+                    </button>
+                    <button class="chart-tab" onclick="switchChart('comparison')">
+                        <i class="fas fa-chart-bar"></i> Zone Comparison
+                    </button>
+                    <button class="chart-tab" onclick="switchChart('heatmap')">
+                        <i class="fas fa-th"></i> Price Heatmap
+                    </button>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="mainChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Data Table -->
+            <section class="glass-card slide-up">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <div class="card-icon">
+                            <i class="fas fa-table"></i>
+                        </div>
+                        Detailed Comparison
+                    </h2>
+                </div>
+                
+                <div class="table-container">
+                    <div class="table-wrapper">
+                        <table id="comparisonTable">
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-map-pin"></i> Zone</th>
+                                    <th><i class="fas fa-calendar-alt"></i> 365-Day Avg</th>
+                                    <th><i class="fas fa-calendar-check"></i> Current Month</th>
+                                    <th><i class="fas fa-calendar-minus"></i> Previous Month</th>
+                                    <th><i class="fas fa-trending-up"></i> Change</th>
+                                    <th><i class="fas fa-percentage"></i> Change %</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                                <!-- Table data will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        // Global variables
+        let allData = {};
+        let selectedZones = new Set();
+        let currentChart = null;
+        let currentChartType = 'rolling';
+        
+        // Zone colors - sophisticated palette
+        const zoneColors = [
+            '#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe',
+            '#00f2fe', '#43e97b', '#38f9d7', '#fa709a', '#fee140',
+            '#a8edea', '#fed6e3', '#ffecd2', '#fcb69f', '#84fab0',
+            '#8fd3f4', '#d299c2', '#fef9d7', '#89f7fe', '#66a6ff'
+        ];
+
+        // Initialize dashboard
+        async function initializeDashboard() {
+            try {
+                await loadData();
+                setupZoneSelection();
+                updateStatistics();
+                updateChart();
+                updateTable();
+                
+                // Add animations
+                setTimeout(() => {
+                    document.getElementById('loadingScreen').style.opacity = '0';
+                    document.getElementById('loadingScreen').style.transition = 'opacity 0.5s ease';
+                    
+                    setTimeout(() => {
+                        document.getElementById('loadingScreen').style.display = 'none';
+                        document.getElementById('mainContent').style.display = 'block';
+                        
+                        // Animate cards
+                        const cards = document.querySelectorAll('.glass-card');
+                        cards.forEach((card, index) => {
+                            setTimeout(() => {
+                                card.style.opacity = '1';
+                                card.style.transform = 'translateY(0)';
+                            }, index * 200);
+                        });
+                    }, 500);
+                }, 1500);
+                
+            } catch (error) {
+                showError('Failed to load market data. Please check your connection and try again.');
+                console.error('Dashboard initialization error:', error);
+            }
+        }
+
+        // Load data from CSV files
+        async function loadData() {
+            const urls = [
+                'https://www.eia.gov/electricity/wholesalemarkets/csv/pjm_lmp_da_hr_zones_2024.csv',
+                'https://www.eia.gov/electricity/wholesalemarkets/csv/pjm_lmp_da_hr_zones_2025.csv'
+            ];
+
+            allData = {};
+            
+            for (const url of urls) {
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const csvText = await response.text();
+                    const parsedData = Papa.parse(csvText, {
+                        header: true,
+                        dynamicTyping: true,
+                        skipEmptyLines: true
+                    });
+
+                    processData(parsedData.data);
+                } catch (error) {
+                    console.warn(`Failed to load data from ${url}:`, error);
+                }
+            }
+        }
+
+        // Process CSV data
+        function processData(data) {
+            data.forEach(row => {
+                if (!row.Zone || row.Price === null || row.Price === undefined) return;
+
+                const zone = row.Zone.trim();
+                const date = new Date(row.Date);
+                const price = parseFloat(row.Price);
+
+                if (isNaN(price) || isNaN(date.getTime())) return;
+
+                if (!allData[zone]) {
+                    allData[zone] = [];
+                }
+
+                allData[zone].push({
+                    date: date,
+                    price: price,
+                    hour: row.Hour || 0
+                });
+            });
+
+            // Sort data by date
+            Object.keys(allData).forEach(zone => {
+                allData[zone].sort((a, b) => a.date - b.date);
+            });
+        }
+
+        // Setup zone selection with enhanced styling
+        function setupZoneSelection() {
+            const zoneSelection = document.getElementById('zoneSelection');
+            const zones = Object.keys(allData).sort();
+            
+            selectedZones.clear();
+            zones.slice(0, 5).forEach(zone => selectedZones.add(zone));
+
+            zoneSelection.innerHTML = '';
+            zones.forEach((zone, index) => {
+                const zoneItem = document.createElement('div');
+                zoneItem.className = `zone-item ${selectedZones.has(zone) ? 'selected' : ''}`;
+                zoneItem.innerHTML = `
+                    <input type="checkbox" class="zone-checkbox" id="zone_${index}" 
+                           ${selectedZones.has(zone) ? 'checked' : ''} 
+                           onchange="toggleZone('${zone}')">
+                    <div class="zone-color" style="background-color: ${zoneColors[index % zoneColors.length]}"></div>
+                    <label class="zone-label" for="zone_${index}">${zone}</label>
+                `;
+                
+                zoneItem.addEventListener('click', (e) => {
+                    if (e.target.type !== 'checkbox') {
+                        const checkbox = zoneItem.querySelector('input[type="checkbox"]');
+                        checkbox.checked = !checkbox.checked;
+                        toggleZone(zone);
+                    }
+                });
+                
+                zoneSelection.appendChild(zoneItem);
+            });
+        }
+
+        // Toggle zone selection with visual feedback
+        function toggleZone(zone) {
+            if (selectedZones.has(zone)) {
+                selectedZones.delete(zone);
+            } else {
+                selectedZones.add(zone);
+            }
+            
+            // Update visual state
+            const zoneItems = document.querySelectorAll('.zone-item');
+            zoneItems.forEach(item => {
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                const label = item.querySelector('.zone-label');
+                if (label.textContent === zone) {
+                    if (selectedZones.has(zone)) {
+                        item.classList.add('selected');
+                    } else {
+                        item.classList.remove('selected');
+                    }
+                }
+            });
+            
+            updateChart();
+            updateTable();
+            updateStatistics();
+        }
+
+        // Enhanced zone selection functions
+        function selectAllZones() {
+            Object.keys(allData).forEach(zone => selectedZones.add(zone));
+            setupZoneSelection();
+            updateChart();
+            updateTable();
+            updateStatistics();
+        }
+
+        function deselectAllZones() {
+            selectedZones.clear();
+            setupZoneSelection();
+            updateChart();
+            updateTable();
+            updateStatistics();
+        }
+
+        function selectTopZones() {
+            selectedZones.clear();
+            const zones = Object.keys(allData);
+            const topZones = zones
+                .map(zone => ({
+                    zone,
+                    avgPrice: calculateRollingAverage(allData[zone])
+                }))
+                .sort((a, b) => b.avgPrice - a.avgPrice)
+                .slice(0, 5)
+                .map(item => item.zone);
+            
+            topZones.forEach(zone => selectedZones.add(zone));
+            setupZoneSelection();
+            updateChart();
+            updateTable();
+            updateStatistics();
+        }
+
+        // Calculate rolling average
+        function calculateRollingAverage(data, days = 365) {
+            if (data.length < days) return data.length > 0 ? data.reduce((sum, d) => sum + d.price, 0) / data.length : 0;
+            
+            const recent = data.slice(-days);
+            return recent.reduce((sum, d) => sum + d.price, 0) / recent.length;
+        }
+
+        // Calculate monthly averages
+        function calculateMonthlyAverages(data) {
+            const monthlyData = {};
+            
+            data.forEach(d => {
+                const monthKey = `${d.date.getFullYear()}-${String(d.date.getMonth() + 1).padStart(2, '0')}`;
+                if (!monthlyData[monthKey]) {
+                    monthlyData[monthKey] = [];
+                }
+                monthlyData[monthKey].push(d.price);
+            });
+
+            return Object.keys(monthlyData).map(month => ({
+                month,
+                date: new Date(month + '-01'),
+                average: monthlyData[month].reduce((sum, price) => sum + price, 0) / monthlyData[month].length
+            })).sort((a, b) => a.date - b.date);
+        }
+
+        // Enhanced statistics with more metrics
+        function updateStatistics() {
+            const statsGrid = document.getElementById('statsGrid');
+            
+            if (selectedZones.size === 0) {
+                statsGrid.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon" style="background: var(--secondary-gradient);">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                        </div>
+                        <div class="stat-value">-</div>
+                        <div class="stat-label">No zones selected</div>
+                    </div>
+                `;
+                return;
+            }
+
+            const selectedData = Array.from(selectedZones).map(zone => allData[zone] || []).flat();
+            
+            if (selectedData.length === 0) {
+                statsGrid.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon" style="background: var(--warning-gradient);">
+                                <i class="fas fa-database"></i>
+                            </div>
+                        </div>
+                        <div class="stat-value">-</div>
+                        <div class="stat-label">No data available</div>
+                    </div>
+                `;
+                return;
+            }
+
+            const prices = selectedData.map(d => d.price);
+            const avgPrice = prices.reduce((sum, price) => sum + price, 0) / prices.length;
+            const maxPrice = Math.max(...prices);
+            const minPrice = Math.min(...prices);
+            const stdDev = Math.sqrt(prices.reduce((sum, price) => sum + Math.pow(price - avgPrice, 2), 0) / prices.length);
+            
+            // Recent data calculations
+            const now = new Date();
+            const recentData = selectedData.filter(d => {
+                const daysDiff = (now - d.date) / (1000 * 60 * 60 * 24);
+                return daysDiff <= 30;
+            });
+            const recentAvg = recentData.length > 0 ? 
+                recentData.reduce((sum, d) => sum + d.price, 0) / recentData.length : 0;
+            
+            const prevMonthData = selectedData.filter(d => {
+                const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1);
+                return d.date.getMonth() === prevMonth.getMonth() && d.date.getFullYear() === prevMonth.getFullYear();
+            });
+            const prevMonthAvg = prevMonthData.length > 0 ? 
+                prevMonthData.reduce((sum, d) => sum + d.price, 0) / prevMonthData.length : 0;
+            
+            const monthlyChange = recentAvg - prevMonthAvg;
+            const monthlyChangePercent = prevMonthAvg !== 0 ? (monthlyChange / prevMonthAvg) * 100 : 0;
+
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon" style="background: var(--primary-gradient);">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="stat-change ${monthlyChange >= 0 ? 'positive' : 'negative'}">
+                            ${monthlyChange >= 0 ? '+' : ''}${monthlyChangePercent.toFixed(1)}%
+                        </div>
+                    </div>
+                    <div class="stat-value">${avgPrice.toFixed(2)}</div>
+                    <div class="stat-label">Average Price</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon" style="background: var(--success-gradient);">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value">${recentAvg.toFixed(2)}</div>
+                    <div class="stat-label">30-Day Average</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon" style="background: var(--secondary-gradient);">
+                            <i class="fas fa-arrow-up"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value">${maxPrice.toFixed(2)}</div>
+                    <div class="stat-label">Peak Price</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon" style="background: var(--warning-gradient);">
+                            <i class="fas fa-arrow-down"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value">${minPrice.toFixed(2)}</div>
+                    <div class="stat-label">Minimum Price</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon" style="background: var(--dark-gradient);">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value">${stdDev.toFixed(2)}</div>
+                    <div class="stat-label">Price Volatility</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon" style="background: var(--primary-gradient);">
+                            <i class="fas fa-database"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value">${selectedData.length.toLocaleString()}</div>
+                    <div class="stat-label">Data Points</div>
+                </div>
+            `;
+        }
+
+        // Enhanced chart switching with better animations
+        function switchChart(type) {
+            currentChartType = type;
+            
+            // Update tab appearance with animation
+            document.querySelectorAll('.chart-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Animate chart transition
+            const chartContainer = document.querySelector('.chart-container');
+            chartContainer.style.opacity = '0.3';
+            chartContainer.style.transform = 'scale(0.95)';
+            
+            setTimeout(() => {
+                updateChart();
+                chartContainer.style.opacity = '1';
+                chartContainer.style.transform = 'scale(1)';
+            }, 200);
+        }
+
+        // Enhanced chart with multiple types
+        function updateChart() {
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
+            if (selectedZones.size === 0) {
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                ctx.fillStyle = '#6b7280';
+                ctx.font = '18px Inter';
+                ctx.textAlign = 'center';
+                ctx.fillText('Select zones to view chart data', ctx.canvas.width / 2, ctx.canvas.height / 2);
+                return;
+            }
+
+            const datasets = [];
+            let zoneIndex = 0;
+
+            Array.from(selectedZones).forEach(zone => {
+                const data = allData[zone] || [];
+                if (data.length === 0) return;
+
+                const color = zoneColors[zoneIndex % zoneColors.length];
+                
+                if (currentChartType === 'rolling') {
+                    // Enhanced rolling average chart
+                    const rollingData = data.map((d, index) => {
+                        const startIndex = Math.max(0, index - 365);
+                        const rollingSlice = data.slice(startIndex, index + 1);
+                        const average = rollingSlice.reduce((sum, item) => sum + item.price, 0) / rollingSlice.length;
+                        return { x: d.date, y: average };
+                    }).filter((_, index) => index % 7 === 0); // Sample every week for performance
+                    
+                    datasets.push({
+                        label: zone,
+                        data: rollingData,
+                        backgroundColor: color + '20',
+                        borderColor: color,
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: false,
+                        pointRadius: 0,
+                        pointHoverRadius: 6
+                    });
+                    
+                } else if (currentChartType === 'monthly') {
+                    // Enhanced monthly trends
+                    const monthlyData = calculateMonthlyAverages(data);
+                    datasets.push({
+                        label: zone,
+                        data: monthlyData.map(d => ({x: d.date, y: d.average})),
+                        backgroundColor: color + '30',
+                        borderColor: color,
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 4,
+                        pointHoverRadius: 8,
+                        pointBackgroundColor: color,
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2
+                    });
+                    
+                } else if (currentChartType === 'comparison') {
+                    // Enhanced bar chart comparison
+                    const rollingAvg = calculateRollingAverage(data);
+                    datasets.push({
+                        label: zone,
+                        data: [rollingAvg],
+                        backgroundColor: color + '80',
+                        borderColor: color,
+                        borderWidth: 2,
+                        borderRadius: 8,
+                        borderSkipped: false
+                    });
+                    
+                } else if (currentChartType === 'heatmap') {
+                    // Price distribution heatmap (simplified as scatter plot)
+                    const recentData = data.slice(-1000).map(d => ({
+                        x: d.date,
+                        y: d.price,
+                        r: 3
+                    }));
+                    
+                    datasets.push({
+                        label: zone,
+                        data: recentData,
+                        backgroundColor: color + '60',
+                        borderColor: color,
+                        borderWidth: 1,
+                        pointRadius: 2,
+                        pointHoverRadius: 4
+                    });
+                }
+                
+                zoneIndex++;
+            });
+
+            const chartConfig = {
+                type: currentChartType === 'comparison' ? 'bar' : 
+                      currentChartType === 'heatmap' ? 'scatter' : 'line',
+                data: { datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: getChartTitle(),
+                            font: { size: 18, weight: 'bold' },
+                            color: '#1f2937',
+                            padding: 20
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20,
+                                font: { size: 12, weight: '600' }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                            titleColor: '#1f2937',
+                            bodyColor: '#374151',
+                            borderColor: '#e5e7eb',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            padding: 12
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: currentChartType === 'comparison' ? 'category' : 'time',
+                            title: {
+                                display: true,
+                                text: getXAxisLabel(),
+                                font: { size: 14, weight: '600' },
+                                color: '#374151'
+                            },
+                            grid: {
+                                color: '#f3f4f6',
+                                lineWidth: 1
+                            },
+                            ticks: {
+                                color: '#6b7280',
+                                font: { size: 12 }
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Price ($/MWh)',
+                                font: { size: 14, weight: '600' },
+                                color: '#374151'
+                            },
+                            grid: {
+                                color: '#f3f4f6',
+                                lineWidth: 1
+                            },
+                            ticks: {
+                                color: '#6b7280',
+                                font: { size: 12 },
+                                callback: function(value) {
+                                    return ' + value.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeInOutQuart'
+                    }
+                }
+            };
+
+            if (currentChartType === 'comparison') {
+                chartConfig.data.labels = Array.from(selectedZones);
+            }
+
+            currentChart = new Chart(ctx, chartConfig);
+        }
+
+        function getChartTitle() {
+            switch(currentChartType) {
+                case 'rolling': return '365-Day Rolling Average Trends';
+                case 'monthly': return 'Monthly Price Trends';
+                case 'comparison': return 'Zone Price Comparison';
+                case 'heatmap': return 'Price Distribution Analysis';
+                default: return 'Price Analysis';
+            }
+        }
+
+        function getXAxisLabel() {
+            switch(currentChartType) {
+                case 'comparison': return 'Trading Zones';
+                case 'heatmap': return 'Time Period';
+                default: return 'Date';
+            }
+        }
+
+        // Enhanced table with better formatting
+        function updateTable() {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+
+            const tableData = Array.from(selectedZones).map(zone => {
+                const data = allData[zone] || [];
+                if (data.length === 0) return null;
+
+                const rollingAvg = calculateRollingAverage(data, 365);
+                const now = new Date();
+                
+                const currentMonthData = data.filter(d => {
+                    return d.date.getMonth() === now.getMonth() && d.date.getFullYear() === now.getFullYear();
+                });
+                const prevMonthData = data.filter(d => {
+                    const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1);
+                    return d.date.getMonth() === prevMonth.getMonth() && d.date.getFullYear() === prevMonth.getFullYear();
+                });
+
+                const currentMonthAvg = currentMonthData.length > 0 ? 
+                    currentMonthData.reduce((sum, d) => sum + d.price, 0) / currentMonthData.length : 0;
+                const prevMonthAvg = prevMonthData.length > 0 ? 
+                    prevMonthData.reduce((sum, d) => sum + d.price, 0) / prevMonthData.length : 0;
+                
+                const change = currentMonthAvg - prevMonthAvg;
+                const changePercent = prevMonthAvg !== 0 ? (change / prevMonthAvg) * 100 : 0;
+
+                return {
+                    zone,
+                    rollingAvg,
+                    currentMonthAvg,
+                    prevMonthAvg,
+                    change,
+                    changePercent
+                };
+            }).filter(item => item !== null)
+            .sort((a, b) => b.rollingAvg - a.rollingAvg);
+
+            tableData.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div class="zone-color" style="background-color: ${zoneColors[Array.from(selectedZones).indexOf(item.zone) % zoneColors.length]}; width: 12px; height: 12px; border-radius: 50%;"></div>
+                            <strong>${item.zone}</strong>
+                        </div>
+                    </td>
+                    <td class="price-cell">${item.rollingAvg.toFixed(2)}</td>
+                    <td class="price-cell">${item.currentMonthAvg.toFixed(2)}</td>
+                    <td class="price-cell">${item.prevMonthAvg.toFixed(2)}</td>
+                    <td class="price-cell ${item.change >= 0 ? 'change-positive' : 'change-negative'}">
+                        ${item.change >= 0 ? '+' : ''}${item.change.toFixed(2)}
+                    </td>
+                    <td class="${item.changePercent >= 0 ? 'change-positive' : 'change-negative'}">
+                        <div style="display: flex; align-items: center; gap: 4px;">
+                            <i class="fas fa-${item.changePercent >= 0 ? 'arrow-up' : 'arrow-down'}"></i>
+                            ${Math.abs(item.changePercent).toFixed(2)}%
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Enhanced update function with better feedback
+        async function updateData() {
+            const updateBtn = document.getElementById('updateBtn');
+            const btnText = updateBtn.querySelector('span');
+            const btnIcon = updateBtn.querySelector('i');
+            
+            updateBtn.disabled = true;
+            updateBtn.classList.add('updating');
+            btnText.textContent = 'Updating...';
+            btnIcon.className = 'fas fa-spinner fa-spin';
+            
+            try {
+                await loadData();
+                setupZoneSelection();
+                updateStatistics();
+                updateChart();
+                updateTable();
+                
+                // Success feedback
+                updateBtn.classList.remove('updating');
+                updateBtn.classList.add('success');
+                btnText.textContent = 'Updated!';
+                btnIcon.className = 'fas fa-check';
+                
+                setTimeout(() => {
+                    updateBtn.classList.remove('success');
+                    btnText.textContent = 'Update Data';
+                    btnIcon.className = 'fas fa-sync-alt';
+                    updateBtn.disabled = false;
+                }, 2000);
+                
+            } catch (error) {
+                showError('Failed to update market data. Please check your connection and try again.');
+                
+                updateBtn.classList.remove('updating');
+                updateBtn.classList.add('error');
+                btnText.textContent = 'Update Failed';
+                btnIcon.className = 'fas fa-exclamation-triangle';
+                
+                setTimeout(() => {
+                    updateBtn.classList.remove('error');
+                    btnText.textContent = 'Update Data';
+                    btnIcon.className = 'fas fa-sync-alt';
+                    updateBtn.disabled = false;
+                }, 3000);
+            }
+        }
+
+        // Enhanced error handling
+        function showError(message) {
+            const container = document.querySelector('.container');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message fade-in';
+            errorDiv.innerHTML = `
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>${message}</span>
+            `;
+            container.insertBefore(errorDiv, container.firstChild);
+            
+            setTimeout(() => {
+                errorDiv.style.opacity = '0';
+                errorDiv.style.transform = 'translateY(-20px)';
+                setTimeout(() => errorDiv.remove(), 300);
+            }, 5000);
+        }
+
+        // Initialize dashboard when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set initial card states for animation
+            const cards = document.querySelectorAll('.glass-card');
+            cards.forEach(card => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+            });
+            
+            initializeDashboard();
+        });
+    </script>
+</body>
+</html>
